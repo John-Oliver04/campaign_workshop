@@ -5,3 +5,4 @@ __pycache__/
 *.egg-info/
 .adk/
 campaign_studio/.adk/
+output/
