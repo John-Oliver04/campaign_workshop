@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "campaign-studio"
+version = "0.1.0"
+description = "Marketing copy agent for Sunrise Roasters built with Google ADK."
+requires-python = ">=3.10"
+dependencies = [
+    "google-adk>=2.13.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["campaign_studio*"]
