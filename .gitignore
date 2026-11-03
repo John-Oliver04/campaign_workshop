@@ -6,3 +6,4 @@ __pycache__/
 .adk/
 campaign_studio/.adk/
 output/
+logs/

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -110,7 +111,14 @@ def save_campaign(campaign: str, filename: str = "") -> dict:
         status with a message.
     """
     try:
-        output_dir = Path.cwd() / "output"
+        configured_dir = Path(
+            os.environ.get("CAMPAIGN_OUTPUT_DIR", "output")
+        )
+        output_dir = (
+            configured_dir
+            if configured_dir.is_absolute()
+            else Path.cwd() / configured_dir
+        )
         output_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
