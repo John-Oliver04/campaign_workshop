@@ -187,7 +187,7 @@ class GuardrailTests(unittest.TestCase):
         result = asyncio.run(
             self.callbacks.before_tool(
                 tool,
-                {"campaign": campaign, "filename": "bad.txt"},
+                {"campaign_name": "Bad Campaign", "content": campaign},
                 tool_context,
             )
         )
@@ -212,7 +212,7 @@ class GuardrailTests(unittest.TestCase):
         result = asyncio.run(
             self.callbacks.before_tool(
                 FakeTool("save_campaign", requires_confirmation=True),
-                {"campaign": campaign, "filename": "obfuscated.txt"},
+                {"campaign_name": "Obfuscated Campaign", "content": campaign},
                 make_context(),
             )
         )
@@ -242,7 +242,10 @@ class GuardrailTests(unittest.TestCase):
         result = asyncio.run(
             self.callbacks.before_tool(
                 FakeTool("publish_campaign"),
-                {"campaign": "Dawn Blend costs ₱480 for a 250g bag."},
+                {
+                    "campaign_name": "Dawn Blend",
+                    "content": "Dawn Blend costs ₱480 for a 250g bag.",
+                },
                 make_context(),
             )
         )
@@ -254,13 +257,24 @@ class GuardrailTests(unittest.TestCase):
 
     def test_10_invalid_tool_arguments_are_rejected(self):
         cases = [
-            ("save_campaign", {"campaign": ""}),
             (
                 "save_campaign",
                 {
-                    "campaign": "Dawn Blend costs ₱480 for a 250g bag.",
+                    "campaign_name": "",
+                    "content": "Dawn Blend costs ₱480 for a 250g bag.",
+                },
+            ),
+            (
+                "save_campaign",
+                {
+                    "campaign_name": "Dawn Blend",
+                    "content": "Dawn Blend costs ₱480 for a 250g bag.",
                     "filename": "../escape.txt",
                 },
+            ),
+            (
+                "save_campaign",
+                {"campaign_name": "Dawn Blend", "content": ""},
             ),
             ("get_product_info", {"product_id": 123}),
             ("get_product_info", {"product_id": ""}),
@@ -369,8 +383,8 @@ class GuardrailTests(unittest.TestCase):
 
     def test_17_save_requires_configured_human_approval(self):
         args = {
-            "campaign": "Dawn Blend is ₱480 for a 250g bag. Order today!",
-            "filename": "dawn-blend.txt",
+            "campaign_name": "Dawn Blend",
+            "content": "Dawn Blend is ₱480 for a 250g bag. Order today!",
         }
         result = asyncio.run(
             self.callbacks.before_tool(
@@ -386,8 +400,8 @@ class GuardrailTests(unittest.TestCase):
 
     def test_18_rejected_human_approval_blocks_tool(self):
         args = {
-            "campaign": "Dawn Blend is ₱480 for a 250g bag. Order today!",
-            "filename": "dawn-blend.txt",
+            "campaign_name": "Dawn Blend",
+            "content": "Dawn Blend is ₱480 for a 250g bag. Order today!",
         }
         result = asyncio.run(
             self.callbacks.before_tool(
@@ -405,7 +419,8 @@ class GuardrailTests(unittest.TestCase):
 
     def test_19_approval_not_configured_blocks_tool(self):
         args = {
-            "campaign": "Dawn Blend is ₱480 for a 250g bag. Order today!",
+            "campaign_name": "Dawn Blend",
+            "content": "Dawn Blend is ₱480 for a 250g bag. Order today!",
         }
         result = asyncio.run(
             self.callbacks.before_tool(
@@ -425,7 +440,7 @@ class GuardrailTests(unittest.TestCase):
     def test_20_tool_response_outside_output_folder_is_blocked(self):
         response = self.callbacks.after_tool(
             FakeTool("save_campaign"),
-            {"campaign": "safe"},
+            {"campaign_name": "Dawn Blend", "content": "safe"},
             make_context(),
             {
                 "status": "success",
@@ -441,7 +456,7 @@ class GuardrailTests(unittest.TestCase):
         path = self.root / "output" / "campaign.txt"
         response = self.callbacks.after_tool(
             FakeTool("save_campaign"),
-            {"campaign": "safe"},
+            {"campaign_name": "Dawn Blend", "content": "safe"},
             make_context(),
             {"status": "success", "path": str(path)},
         )
@@ -452,22 +467,26 @@ class GuardrailTests(unittest.TestCase):
     def test_22_existing_save_tool_still_works(self):
         from unittest import mock
 
+        context = SimpleNamespace(state={})
         with mock.patch.dict(
             "os.environ",
             {"CAMPAIGN_OUTPUT_DIR": str(self.root / "output")},
         ):
             result = save_campaign(
+                "Dawn Blend",
                 "Dawn Blend is ₱480 for a 250g bag.",
-                "guardrail-test.txt",
+                context,
             )
 
         self.assertEqual(result["status"], "success")
         saved = Path(result["path"])
         self.assertTrue(saved.exists())
+        self.assertEqual(saved.name, "dawn-blend.txt")
         self.assertEqual(
             saved.resolve().parent,
             (self.root / "output").resolve(),
         )
+        self.assertEqual(context.state["saved_campaigns"], ["Dawn Blend"])
         saved.unlink()
 
 

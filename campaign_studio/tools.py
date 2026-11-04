@@ -1,6 +1,8 @@
 import os
-from datetime import datetime
+import re
 from pathlib import Path
+
+from google.adk.tools import ToolContext
 
 PRODUCTS = {
     "SR-202": {
@@ -151,17 +153,19 @@ def get_competitor_messaging(competitor: str) -> dict:
     }
 
 
-def save_campaign(campaign: str, filename: str = "") -> dict:
-    """Save generated campaign copy to a text file in the output folder.
+def save_campaign(
+    campaign_name: str,
+    content: str,
+    tool_context: ToolContext,
+) -> dict:
+    """Saves a finished campaign to a text file in the output folder.
 
     Args:
-        campaign: The complete campaign copy to save.
-        filename: Optional file name, such as "dawn-blend.txt". Defaults to a
-            timestamped file name.
+        campaign_name: A short name, for example "Cold Brew Launch".
+        content: The full campaign text to save.
 
     Returns:
-        A dict with a success status and the saved file path, or an error
-        status with a message.
+        A dict with the status and the file path.
     """
     try:
         configured_dir = Path(
@@ -173,27 +177,39 @@ def save_campaign(campaign: str, filename: str = "") -> dict:
             else Path.cwd() / configured_dir
         )
         output_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        if filename.strip():
-            name = Path(filename.strip()).name
-            name = "".join(
-                char if char.isalnum() or char in "-_." else "_"
-                for char in name
-            )
-            if not name.lower().endswith(".txt"):
-                name += ".txt"
-        else:
-            name = f"campaign_{stamp}.txt"
-
-        if name in {"", ".txt"}:
-            name = f"campaign_{stamp}.txt"
-
-        path = output_dir / name
-        path.write_text(campaign, encoding="utf-8")
-        return {"status": "success", "path": str(path)}
-    except OSError as exc:
+        slug = (
+            re.sub(r"[^a-z0-9]+", "-", campaign_name.lower()).strip("-")
+            or "campaign"
+        )
+        path = output_dir / f"{slug}.txt"
+        path.write_text(content, encoding="utf-8")
+    except OSError as error:
         return {
             "status": "error",
-            "message": f"Could not save campaign: {exc}",
+            "message": f"Could not save the file: {error}",
         }
+
+    saved = list(tool_context.state.get("saved_campaigns", []))
+    saved.append(campaign_name)
+    tool_context.state["saved_campaigns"] = saved
+    return {"status": "success", "path": str(path)}
+
+
+def remember_preference(
+    name: str,
+    value: str,
+    tool_context: ToolContext,
+) -> dict:
+    """Remembers a user preference so it applies in future sessions.
+
+    Args:
+        name: The preference key, for example "preferred_tone".
+        value: The user's preference, for example "casual and playful".
+    """
+    key = f"user:{name}"
+    tool_context.state[key] = value
+    return {
+        "status": "success",
+        "message": f"Remembered {name} as '{value}'",
+    }

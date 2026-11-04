@@ -88,6 +88,8 @@ class GuardrailConfig:
             "designer",
             "illustrator",
             "campaign_pipeline",
+            "remember_preference",
+            "preload_memory",
         }
     )
     require_approval_for: frozenset[str] = frozenset({"save_campaign"})
@@ -771,36 +773,40 @@ class ToolGuardrail:
         return Decision(allowed=True, category="tool")
 
     def _validate_save_args(self, args: dict[str, Any]) -> Decision:
-        if set(args) - {"campaign", "filename"}:
+        if set(args) - {"campaign_name", "content"}:
             return _invalid_args(
                 "save_campaign",
                 "unexpected arguments",
             )
-        campaign = args.get("campaign")
-        if not isinstance(campaign, str) or not campaign.strip():
+        campaign_name = args.get("campaign_name")
+        if (
+            not isinstance(campaign_name, str)
+            or not campaign_name.strip()
+        ):
             return _invalid_args(
                 "save_campaign",
-                "campaign must be a non-empty string",
+                "campaign_name must be a non-empty string",
             )
-        if len(campaign) > self.config.max_campaign_chars:
+        if len(campaign_name) > self.config.max_filename_chars:
             return _invalid_args(
                 "save_campaign",
-                "campaign exceeds the maximum length",
+                "campaign_name exceeds the maximum length",
             )
 
-        filename = args.get("filename", "")
-        if not isinstance(filename, str):
+        content = args.get("content")
+        if not isinstance(content, str) or not content.strip():
             return _invalid_args(
                 "save_campaign",
-                "filename must be a string",
+                "content must be a non-empty string",
             )
-        if filename:
-            filename_decision = self._validate_filename(filename)
-            if not filename_decision.allowed:
-                return filename_decision
+        if len(content) > self.config.max_campaign_chars:
+            return _invalid_args(
+                "save_campaign",
+                "content exceeds the maximum length",
+            )
 
         output_decision = self.output_guardrail.evaluate(
-            campaign,
+            content,
             action="save_campaign",
         )
         if not output_decision.allowed:
@@ -1222,3 +1228,15 @@ def build_guardrail_callbacks(
         after_tool=after_tool_callback,
         security_logger=audit,
     )
+
+
+async def save_session_to_memory(
+    callback_context: CallbackContext,
+) -> None:
+    """Stores the finished session in long-term memory (used in Lab 6)."""
+    try:
+        await callback_context.add_session_to_memory()
+    except Exception:
+        # Fails gracefully if the memory service is not enabled or reachable.
+        pass
+    return None
