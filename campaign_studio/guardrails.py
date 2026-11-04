@@ -87,6 +87,7 @@ class GuardrailConfig:
             "writer",
             "designer",
             "illustrator",
+            "campaign_pipeline",
         }
     )
     require_approval_for: frozenset[str] = frozenset({"save_campaign"})

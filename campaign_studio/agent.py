@@ -1,9 +1,10 @@
 from google.adk.agents import Agent
 from google.adk.tools import AgentTool, FunctionTool
 
-from .agents import designer, illustrator, researcher, strategist, writer
+from .agents import writer
 from .config import MODEL
 from .guardrails import build_guardrail_callbacks
+from .pipeline import campaign_pipeline
 from .tools import get_brand_voice, get_product_info, save_campaign
 
 _callbacks = build_guardrail_callbacks()
@@ -15,14 +16,12 @@ root_agent = Agent(
     instruction="""You are the campaign lead at Sunrise Roasters, a Philippine coffee brand.
 You help marketers plan and write campaigns for three products: SR-101, SR-202 and SR-303.
 
-For a full campaign, work like a project lead:
-1. Ask the researcher for trends and competitor messaging.
-2. Give the research to the strategist to get an angle, audience and channels.
-3. Ask the writer for the copy for the product, passing along the strategy.
-4. Ask the designer for a visual brief, then give its hero image idea to the illustrator to create an image.
-5. Present all the results, including the image file name, together as one campaign package.
+How to work:
+For a full campaign, call the campaign_pipeline tool with the product and the target audience.
+Present the returned package cleanly to the marketer.
 
-For quick questions about a product or the brand voice, use get_product_info or get_brand_voice directly. Only call save_campaign when the user asks you to save.
+For quick questions about a product or the brand voice, use get_product_info or get_brand_voice directly.
+Only call save_campaign when the user asks you to save.
 
 Rules:
 - Use only facts returned by tools. If you do not know, say so.
@@ -48,14 +47,11 @@ SAVING
   tell the user the campaign has not been saved.
 - Report the saved file path only when the tool returns status "success".""",
     tools=[
+        AgentTool(agent=campaign_pipeline),
+        AgentTool(agent=writer),
         get_product_info,
         get_brand_voice,
         FunctionTool(save_campaign, require_confirmation=True),
-        AgentTool(agent=researcher),
-        AgentTool(agent=strategist),
-        AgentTool(agent=writer),
-        AgentTool(agent=designer),
-        AgentTool(agent=illustrator),
     ],
     before_model_callback=_callbacks.before_model,
     after_model_callback=_callbacks.after_model,
