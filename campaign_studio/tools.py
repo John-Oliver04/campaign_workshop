@@ -21,6 +21,15 @@ PRODUCTS = {
         "tasting_notes": "Dark chocolate, smoky, full-bodied",
         "audience": "Bold coffee lovers",
     },
+    "SR-303": {
+        "product_id": "SR-303",
+        "name": "Office Brew",
+        "type": "Medium-dark roast, Arabica-Robusta blend",
+        "weight_grams": 250,
+        "price_php": 450,
+        "tasting_notes": "Caramel, cocoa, citrus finish",
+        "audience": "Office workers and team pantries",
+    },
 }
 
 BRAND_VOICE = {
@@ -95,6 +104,50 @@ def get_brand_voice() -> dict:
         "brand": "Sunrise Roasters",
         "guidelines": BRAND_VOICE,
         "audience_notes": AUDIENCE_NOTES,
+    }
+
+
+TRENDS = {
+    "coffee": [
+        "Local single-origin beans are a talking point on social media",
+        "Short video 'brew with me' content gets strong engagement",
+    ],
+    "default": "No trend data for this category. Say so instead of guessing.",
+}
+
+COMPETITORS = {
+    "brewlandia": "Leans on discounts and buy-one-take-one promos.",
+    "kapehan co": "Leans on heritage and farmer stories. Premium pricing.",
+}
+
+
+def get_trending_topics(category: str) -> dict:
+    """Returns made-up marketing trends for a product category."""
+    return {
+        "category": category,
+        "trends": TRENDS.get(category.lower(), TRENDS["default"]),
+    }
+
+
+def get_competitor_messaging(competitor: str) -> dict:
+    """Returns how a named competitor markets itself (made-up data).
+
+    Args:
+        competitor: The competitor name, for example 'Brewlandia'.
+
+    Returns:
+        A dict with a one-line summary of the competitor's messaging.
+    """
+    summary = COMPETITORS.get(competitor.strip().lower())
+    if summary is None:
+        return {
+            "status": "error",
+            "message": f"No data for competitor '{competitor}'",
+        }
+    return {
+        "status": "success",
+        "competitor": competitor,
+        "messaging": summary,
     }
 
 

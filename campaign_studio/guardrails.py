@@ -78,7 +78,16 @@ class GuardrailConfig:
     max_campaign_chars: int = 20_000
     max_filename_chars: int = 120
     authorized_tools: frozenset[str] = frozenset(
-        {"get_product_info", "get_brand_voice", "save_campaign"}
+        {
+            "get_product_info",
+            "get_brand_voice",
+            "save_campaign",
+            "researcher",
+            "strategist",
+            "writer",
+            "designer",
+            "illustrator",
+        }
     )
     require_approval_for: frozenset[str] = frozenset({"save_campaign"})
     output_dir: Path = Path("output")
